@@ -107,3 +107,50 @@ drop policy if exists "store owners read backup history" on public.backup_runs;
 create policy "store owners read backup history" on public.backup_runs for select to authenticated
 using (store_id is not null and public.has_store_role(store_id,array['owner']));
 -- Billing events, plan writes, backup writes and subscription writes are service-role only.
+
+-- Monthly AI quota is enforced atomically by the Edge Function via service-role RPC.
+create table if not exists public.ai_usage_monthly (
+  store_id uuid not null references public.stores(id) on delete cascade,
+  usage_month date not null,
+  replies_used integer not null default 0 check(replies_used >= 0),
+  updated_at timestamptz not null default now(),
+  primary key(store_id,usage_month)
+);
+alter table public.ai_usage_monthly enable row level security;
+drop policy if exists "owners read monthly AI usage" on public.ai_usage_monthly;
+create policy "owners read monthly AI usage" on public.ai_usage_monthly for select to authenticated
+using (public.has_store_role(store_id,array['owner','admin']));
+
+create or replace function public.consume_ai_reply(target_store uuid, quota integer)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare current_month date := date_trunc('month',now() at time zone 'UTC')::date;
+declare used integer;
+begin
+  if quota <= 0 then return false; end if;
+  insert into public.ai_usage_monthly(store_id,usage_month,replies_used)
+  values(target_store,current_month,0)
+  on conflict(store_id,usage_month) do nothing;
+  update public.ai_usage_monthly
+     set replies_used=replies_used+1,updated_at=now()
+   where store_id=target_store and usage_month=current_month and replies_used < quota
+   returning replies_used into used;
+  return found;
+end $$;
+revoke all on function public.consume_ai_reply(uuid,integer) from public,anon,authenticated;
+grant execute on function public.consume_ai_reply(uuid,integer) to service_role;
+
+insert into public.plan_catalog(plan_code,display_name,currency_code,monthly_amount,annual_amount,max_users,max_products,ai_replies_monthly,is_public,is_sellable)
+values
+ ('starter','Starter','MAD',79,790,1,500,0,true,false),
+ ('pro','Pro','MAD',149,1490,3,3000,200,true,false),
+ ('business','Business','MAD',299,2990,10,10000,1000,true,false)
+on conflict(plan_code) do update set
+ display_name=excluded.display_name,currency_code=excluded.currency_code,
+ monthly_amount=excluded.monthly_amount,annual_amount=excluded.annual_amount,
+ max_users=excluded.max_users,max_products=excluded.max_products,
+ ai_replies_monthly=excluded.ai_replies_monthly,is_public=excluded.is_public,
+ is_sellable=false,updated_at=now();
