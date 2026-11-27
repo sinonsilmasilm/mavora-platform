@@ -1,21 +1,25 @@
-# MAVORA — Local MVP 0.2
+# MAVORA
 
-واجهة عربية متجاوبة كنموذج أولي محلي لإدارة المنتجات والمخزون والطلبات.
+MAVORA is a Morocco-first store-management SaaS project for electronics and mobile-accessory retailers.
 
-## الوظائف الحالية
-- لوحة تحكم عربية متجاوبة.
-- إضافة المنتجات وتعديلها وحذفها، مع السعر والكمية والوصف ورابط صورة اختياري.
-- بحث في اسم المنتج والوصف.
-- حساب قيمة المخزون وتنبيه انخفاض الكمية أو نفادها.
-- مساعد كتالوج محلي بسيط يبحث عن كلمات من اسم المنتج والوصف؛ ليس نموذج ذكاء اصطناعي.
-- إنشاء طلبات تجريبية مع اختيار المنتج والكمية والعميل.
-- منع إنشاء طلب بكمية أكبر من المخزون، وتحديث الكمية بعد إنشاء الطلب التجريبي.
-- تصدير واستعادة نسخة JSON احتياطية.
-- حفظ محلي في المتصفح عبر localStorage.
-- PWA مع تحديث cache وإزالة النسخ القديمة.
+## Public pages
+- `index.html`: public product/marketing page. Prices and roadmap features are explicitly marked as proposed or not yet available.
+- `app.html`: local browser-only demo dashboard.
+- `privacy.html`: privacy notice for the current demo only.
+- `terms.html`: demo-use terms, not final commercial terms.
 
-## حدود مهمة
-هذه ليست منصة SaaS جاهزة للإنتاج. لا توجد قاعدة بيانات سحابية أو مزامنة بين الأجهزة أو حسابات وتسجيل دخول أو عزل بيانات المتاجر أو ذكاء اصطناعي حقيقي أو تكامل WhatsApp Business أو بوابة دفع أو صلاحيات مستخدمين أو نسخ احتياطي تلقائي. الطلبات المعروضة تجريبية فقط. لا تخزن بيانات شخصية أو بيانات عملاء حقيقية.
+## Current demo status
+The dashboard stores products and demo orders in browser localStorage. It is not a production SaaS application. There is no deployed authentication, cloud database, multi-tenant data isolation, real AI assistant, WhatsApp integration, subscription billing, or customer support operation. Do not collect real customer data or accept payments.
 
-## النشر
-يتم نشر الواجهة كملفات ثابتة عبر GitHub Pages. يلزم Backend آمن وقاعدة بيانات ومصادقة واختبارات أمنية قبل أي إطلاق تجاري.
+## Backend foundation (not deployed)
+- `supabase/migrations/202611270001_initial_schema.sql`: draft Postgres schema with store membership and RLS policies.
+- `supabase/functions/store-assistant/index.ts`: draft server-side catalog assistant.
+- `supabase/README.md`: deployment prerequisites and required secrets.
+
+These files have not been applied or deployed. A Supabase project, server-side secrets, tests, and security review are still required.
+
+## Commercial launch
+See `docs/COMMERCIAL_LAUNCH_CHECKLIST.md` for product, security, payments, WhatsApp, privacy, legal and sales requirements.
+
+## Hosting
+GitHub Pages serves the static public pages only. It cannot run the backend or safely hold private API keys.
