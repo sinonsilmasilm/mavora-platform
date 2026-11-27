@@ -14,7 +14,7 @@ async function verifySignature(raw: string, header: string, secret: string): Pro
   const seconds=Number(ts);
   if(!Number.isFinite(seconds) || Math.abs(Date.now()/1000-seconds)>300) return false;
   const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
-  const digest=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(`${ts}.${raw}`));
+  const digest=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(ts + ":" + raw));
   return constantTimeEqual(hex(new Uint8Array(digest)),signature);
 }
 
@@ -49,14 +49,21 @@ Deno.serve(async(req)=>{
   try{
     if(event.event_type.startsWith("subscription.") && typeof storeId==="string" && ["starter","pro","business"].includes(planCode)){
       const paddleStatus=String(data.status??"");
-      const status=paddleStatus==="active"?"active":paddleStatus==="trialing"?"trialing":paddleStatus==="past_due"?"past_due":paddleStatus==="canceled"?"cancelled":"inactive";
-      const periodEnd=data.current_billing_period?.ends_at??null;
-      const {error}=await admin.from("subscriptions").upsert({
-        store_id:storeId,provider:"paddle",provider_subscription_id:data.id??null,
-        provider_customer_id:data.customer_id??null,plan_code:planCode,status,
-        current_period_end:periodEnd,updated_at:new Date().toISOString()
-      },{onConflict:"store_id"});
-      if(error) throw error;
+      const status=paddleStatus==="active"?"active":paddleStatus==="trialing"?"trialing":paddleStatus==="past_due"?"past_due":paddleStatus==="canceled"?"cancelled":paddleStatus==="paused"?"paused":"inactive";
+      const periodEnd=data.current_billing_period?.ends_at??data.ends_at??null;
+      const occurredAt=event.occurred_at??new Date().toISOString();
+      const {data:existing,error:readError}=await admin.from("subscriptions")
+        .select("provider_event_occurred_at").eq("store_id",storeId).maybeSingle();
+      if(readError) throw readError;
+      const prior=existing?.provider_event_occurred_at ? Date.parse(existing.provider_event_occurred_at) : 0;
+      if(Date.parse(occurredAt)>=prior){
+        const {error}=await admin.from("subscriptions").upsert({
+          store_id:storeId,provider:"paddle",provider_subscription_id:data.id??null,
+          provider_customer_id:data.customer_id??null,plan_code:planCode,status,
+          current_period_end:periodEnd,provider_event_occurred_at:occurredAt,updated_at:new Date().toISOString()
+        },{onConflict:"store_id"});
+        if(error) throw error;
+      }
     }
     await admin.from("billing_events").update({processed_at:new Date().toISOString()}).eq("id",inserted.id);
     return new Response("ok",{status:200});
