@@ -67,7 +67,8 @@ create table if not exists public.products (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(store_id,sku),
-  unique(store_id,barcode)
+  unique(store_id,barcode),
+  unique(id,store_id)
 );
 create index if not exists products_store_name_idx on public.products(store_id,name);
 create index if not exists products_store_active_idx on public.products(store_id,is_active);
@@ -94,14 +95,15 @@ create table if not exists public.customers (
   marketing_opt_in boolean not null default false,
   notes text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique(id,store_id)
 );
 create index if not exists customers_store_name_idx on public.customers(store_id,full_name);
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   store_id uuid not null references public.stores(id) on delete cascade,
-  customer_id uuid references public.customers(id) on delete set null,
+  customer_id uuid,
   order_number text not null,
   status text not null default 'pending' check (status in ('pending','confirmed','processing','shipped','delivered','cancelled','returned')),
   currency_code text not null default 'MAD' check (currency_code ~ '^[A-Z]{3}$'),
@@ -115,7 +117,9 @@ create table if not exists public.orders (
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(store_id,order_number)
+  unique(store_id,order_number),
+  unique(id,store_id),
+  constraint orders_customer_same_store_fk foreign key(customer_id,store_id) references public.customers(id,store_id) on delete set null (customer_id)
 );
 create index if not exists orders_store_created_idx on public.orders(store_id,created_at desc);
 create index if not exists orders_store_status_idx on public.orders(store_id,status);
@@ -123,14 +127,16 @@ create index if not exists orders_store_status_idx on public.orders(store_id,sta
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
   store_id uuid not null references public.stores(id) on delete cascade,
-  order_id uuid not null references public.orders(id) on delete cascade,
-  product_id uuid references public.products(id) on delete set null,
+  order_id uuid not null,
+  product_id uuid,
   product_name_snapshot text not null,
   sku_snapshot text,
   quantity integer not null check (quantity > 0),
   unit_price numeric(12,2) not null check (unit_price >= 0),
   line_total numeric(12,2) not null check (line_total >= 0),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint order_items_order_same_store_fk foreign key(order_id,store_id) references public.orders(id,store_id) on delete cascade,
+  constraint order_items_product_same_store_fk foreign key(product_id,store_id) references public.products(id,store_id) on delete set null (product_id)
 );
 
 create table if not exists public.subscriptions (
@@ -249,5 +255,7 @@ drop policy if exists "store admins delete product images" on storage.objects;
 create policy "store admins delete product images" on storage.objects for delete to authenticated
 using (bucket_id='mavora-product-images' and public.has_store_role((storage.foldername(name))[1]::uuid,array['owner','admin']));
 
+revoke all on function public.is_store_member(uuid) from public, anon;
+revoke all on function public.has_store_role(uuid,text[]) from public, anon;
 grant execute on function public.is_store_member(uuid) to authenticated;
 grant execute on function public.has_store_role(uuid,text[]) to authenticated;
