@@ -37,14 +37,21 @@ Deno.serve(async(req)=>{
   const storeId=custom.store_id;
   const planCode=custom.plan_code;
   const safePayload={event_id:event.event_id,event_type:event.event_type,occurred_at:event.occurred_at,subscription_id:data.id,status:data.status,custom_data:custom};
+  let eventRow:any=null;
   const {data:inserted,error:insertError}=await admin.from("billing_events").insert({
     provider:"paddle",provider_event_id:event.event_id,event_type:event.event_type,
     store_id:typeof storeId==="string"?storeId:null,payload_safe:safePayload
-  }).select("id").maybeSingle();
+  }).select("id,processed_at").maybeSingle();
   if(insertError){
-    if(insertError.code==="23505") return new Response("Already processed",{status:200});
-    return new Response("Could not record event",{status:500});
-  }
+    if(insertError.code==="23505"){
+      const {data:existing,error:existingError}=await admin.from("billing_events")
+        .select("id,processed_at").eq("provider","paddle").eq("provider_event_id",event.event_id).maybeSingle();
+      if(existingError||!existing) return new Response("Could not load duplicate event",{status:500});
+      if(existing.processed_at) return new Response("Already processed",{status:200});
+      eventRow=existing;
+    } else return new Response("Could not record event",{status:500});
+  } else eventRow=inserted;
+  if(!eventRow?.id) return new Response("Could not record event",{status:500});
 
   try{
     if(event.event_type.startsWith("subscription.") && typeof storeId==="string" && ["starter","pro","business"].includes(planCode)){
@@ -65,7 +72,7 @@ Deno.serve(async(req)=>{
         if(error) throw error;
       }
     }
-    await admin.from("billing_events").update({processed_at:new Date().toISOString()}).eq("id",inserted.id);
+    await admin.from("billing_events").update({processed_at:new Date().toISOString()}).eq("id",eventRow.id);
     return new Response("ok",{status:200});
   }catch(_){
     await admin.from("billing_events").update({processing_error:"Subscription update failed"}).eq("id",inserted.id);
