@@ -2,12 +2,17 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const allowedCategories=["general","billing","technical","data","security","feature"];
 Deno.serve(async(req)=>{
-  if(req.method!=="POST") return new Response("Method not allowed",{status:405});
+  const allowedOrigin=Deno.env.get("ALLOWED_ORIGIN")??"";
+  const origin=req.headers.get("Origin")??"";
+  if(!allowedOrigin||origin!==allowedOrigin) return new Response("Origin not allowed",{status:403,headers});
+  const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Vary":"Origin","Content-Type":"application/json"};
+  if(req.method==="OPTIONS") return new Response("ok",{headers});
+  if(req.method!=="POST") return new Response("Method not allowed",{status:405,headers});
   const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if(!url||!anon||!service) return Response.json({error:"Support service is not configured"},{status:503});
+  if(!url||!anon||!service) return Response.json({error:"Support service is not configured"},{status:503,headers});
   const auth=req.headers.get("Authorization")??"";
-  if(!auth.startsWith("Bearer ")) return Response.json({error:"Sign in required"},{status:401});
-  let body:any;try{body=await req.json()}catch{return Response.json({error:"Invalid JSON"},{status:400})}
+  if(!auth.startsWith("Bearer ")) return Response.json({error:"Sign in required"},{status:401,headers});
+  let body:any;try{body=await req.json()}catch{return Response.json({error:"Invalid JSON"},{status:400,headers})}
   const storeId=String(body.storeId??""),subject=String(body.subject??"").trim(),message=String(body.message??"").trim(),category=String(body.category??"general");
   if(!/^[0-9a-f-]{36}$/i.test(storeId)||subject.length<4||subject.length>180||message.length<1||message.length>10000||!allowedCategories.includes(category)){
     return Response.json({error:"Invalid ticket details"},{status:400});
@@ -21,7 +26,7 @@ Deno.serve(async(req)=>{
   const {data:ticket,error:ticketError}=await admin.from("support_tickets").insert({
     store_id:storeId,created_by:userData.user.id,subject,category,priority:category==="security"?"high":"normal"
   }).select("id").single();
-  if(ticketError||!ticket) return Response.json({error:"Could not create ticket"},{status:500});
+  if(ticketError||!ticket) return Response.json({error:"Could not create ticket"},{status:500,headers});
   const {error:messageError}=await admin.from("support_messages").insert({
     ticket_id:ticket.id,store_id:storeId,author_user_id:userData.user.id,author_type:"merchant",message
   });
@@ -29,5 +34,5 @@ Deno.serve(async(req)=>{
     await admin.from("support_tickets").delete().eq("id",ticket.id);
     return Response.json({error:"Could not save ticket message"},{status:500});
   }
-  return Response.json({ticketId:ticket.id,status:"open"},{status:201});
+  return Response.json({ticketId:ticket.id,status:"open"},{status:201,headers});
 });
