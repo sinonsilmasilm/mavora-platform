@@ -47,6 +47,24 @@ Deno.serve(async (req) => {
     .select("role").eq("store_id", storeId).eq("user_id", userData.user.id).maybeSingle();
   if (memberError || !membership) return new Response(JSON.stringify({ error: "Store access denied" }), { status: 403, headers });
 
+  const { data: subscription, error: subscriptionError } = await admin.from("subscriptions")
+    .select("plan_code,status").eq("store_id", storeId).maybeSingle();
+  if (subscriptionError || !subscription || !["active","trialing"].includes(subscription.status)) {
+    return new Response(JSON.stringify({ error: "An active subscription or trial is required" }), { status: 402, headers });
+  }
+  const { data: plan, error: planError } = await admin.from("plan_catalog")
+    .select("ai_replies_monthly").eq("plan_code", subscription.plan_code).maybeSingle();
+  const monthlyQuota = Number(plan?.ai_replies_monthly ?? 0);
+  if (planError || monthlyQuota <= 0) {
+    return new Response(JSON.stringify({ error: "The AI assistant is not included in this plan" }), { status: 403, headers });
+  }
+  const { data: allowed, error: quotaError } = await admin.rpc("consume_ai_reply", {
+    target_store: storeId, quota: monthlyQuota
+  });
+  if (quotaError || allowed !== true) {
+    return new Response(JSON.stringify({ error: "Monthly AI reply allowance reached" }), { status: 429, headers });
+  }
+
   const { data: products, error: productsError } = await admin.from("products")
     .select("name,description,sale_price,currency_code,stock_quantity,category,sku")
     .eq("store_id", storeId).eq("is_active", true).limit(100);
