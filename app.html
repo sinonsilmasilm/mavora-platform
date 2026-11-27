@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1630">
+<meta name="description" content="MAVORA لإدارة المتاجر والمنتجات والمخزون والطلبات">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./styles.css">
+<title>MAVORA | لوحة التجربة</title>
+</head>
+<body>
+<header><a class="brand" href="./" aria-label="MAVORA الصفحة الرئيسية"><b>M</b><span>MAVORA<small>SMART COMMERCE</small></span></a><span id="storeLabel">مساحة تجريبية</span></header>
+<main>
+<div class="notice" role="status"><strong>نسخة تجريبية على هذا الجهاز</strong><span>البيانات تُحفظ في متصفحك فقط. لا توجد مزامنة سحابية أو حسابات متاجر حالياً.</span><div class="backup-actions"><button type="button" class="outline" id="exportBtn">تصدير نسخة احتياطية</button><button type="button" class="outline" id="importBtn">استعادة نسخة</button><input id="importFile" type="file" accept="application/json,.json" hidden></div></div>
+<section class="hero"><div><small>لوحة التحكم</small><h1>إدارة متجرك، <em>بذكاء.</em></h1><p>نظّم المنتجات والمخزون والطلبات في مكان واحد.</p></div><button id="addBtn">＋ إضافة منتج</button></section>
+<section class="stats">
+<article><small>المنتجات</small><strong id="count">0</strong></article>
+<article><small>قيمة المخزون</small><strong id="stockValue">0 د.م</strong></article>
+<article><small>الطلبات التجريبية</small><strong id="ordersCount">0</strong></article>
+<article><small>مخزون منخفض</small><strong id="lowCount">0</strong></article>
+</section>
+<section class="panel">
+<div class="heading"><div><h2>المنتجات</h2><p>أضف منتجاتك وتابع الأسعار والكميات والصور.</p></div><input id="search" type="search" placeholder="ابحث عن منتج" aria-label="ابحث عن منتج"></div>
+<div class="scroll"><table><thead><tr><th>المنتج</th><th>السعر</th><th>الكمية</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p id="empty" class="empty">لا توجد منتجات. أضف منتجك الأول.</p><p id="noResults" class="empty" hidden>لا توجد نتائج مطابقة للبحث.</p>
+</section>
+<section class="panel">
+<div class="heading"><div><h2>مساعد الكتالوج</h2><p>بحث محلي في أسماء المنتجات وأوصافها، وليس ذكاءً اصطناعياً متصلاً.</p></div></div>
+<div id="chat" class="chat" aria-live="polite"><p>مرحباً! اسأل عن منتج أو سعره أو وصفه.</p></div>
+<form id="ask"><input id="question" autocomplete="off" placeholder="مثال: بشحال شاحن Type-C؟" required maxlength="180"><button>اسأل</button></form>
+</section>
+<section class="panel">
+<div class="heading"><div><h2>الطلبات التجريبية</h2><p>اختبر تسجيل طلب تجريبي؛ لن يتم إرسال الطلب لأي متجر أو عميل.</p></div><button class="secondary" id="newOrder">＋ طلب تجريبي</button></div>
+<div class="scroll"><table><thead><tr><th>العميل</th><th>المنتج</th><th>الكمية</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody id="orderRows"></tbody></table></div>
+<p id="ordersEmpty" class="empty">لا توجد طلبات تجريبية بعد.</p>
+</section>
+<footer>MAVORA · مساحة تجربة محلية · لا تستخدم بيانات عملاء حقيقية</footer>
+</main>
+<dialog id="dlg"><form id="productForm">
+<h2 id="productDialogTitle">إضافة منتج</h2><input type="hidden" id="pid">
+<label>اسم المنتج<input id="name" required maxlength="80" autocomplete="off"></label>
+<label>السعر بالدرهم<input id="price" type="number" min="0" max="100000000" step="0.01" required inputmode="decimal"></label>
+<label>الكمية<input id="qty" type="number" min="0" max="10000000" step="1" required inputmode="numeric"></label>
+<label>وصف المنتج (اختياري)<input id="desc" maxlength="300"></label>
+<label>رابط صورة المنتج (اختياري)<input id="imageUrl" type="url" placeholder="https://..." maxlength="500" inputmode="url"></label>
+<p class="field-hint">استخدم رابط صورة مباشر يبدأ بـ https:// أو http://.</p>
+<div class="actions"><button type="button" class="secondary" id="cancel">إلغاء</button><button>حفظ المنتج</button></div>
+</form></dialog>
+<dialog id="orderDlg"><form id="orderForm">
+<h2>إنشاء طلب تجريبي</h2>
+<label>اسم العميل<input id="customer" required maxlength="80"></label>
+<label>المنتج<select id="orderProduct" required></select></label>
+<label>الكمية المطلوبة<input id="orderQty" type="number" min="1" step="1" value="1" required inputmode="numeric"></label>
+<p id="availableQty" class="field-hint"></p>
+<div class="actions"><button type="button" class="secondary" id="cancelOrder">إلغاء</button><button>إنشاء الطلب التجريبي</button></div>
+</form></dialog>
+<script src="./app.js" defer></script>
+</body></html>
