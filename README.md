@@ -5,6 +5,8 @@ MAVORA is a Morocco-first store-management SaaS project for electronics and mobi
 ## Public website
 - `index.html`: product overview and proposed pricing (not open for sale).
 - `app.html`: local browser-only demo dashboard.
+- `cloud.html` / `cloud.js`: cloud-account dashboard scaffold (disabled until Supabase configuration).
+- `supabase-client-config.js`: intentionally blank public Supabase URL/anon-key configuration.
 - `help.html`: self-service help and current service limitations.
 - `privacy.html` / `terms.html`: notices for the demo only.
 
