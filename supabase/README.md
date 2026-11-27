@@ -1,31 +1,36 @@
-# MAVORA backend foundation
+# MAVORA Supabase backend foundation
 
-This repository now includes a draft Supabase/Postgres multi-tenant schema and a server-side catalog assistant function.
+The repository contains database migrations and Edge Function scaffolding. Nothing has been deployed to a Supabase project yet.
 
-## Not deployed
-These files are scaffolding only. No Supabase project has been created or connected, and no production credentials have been supplied. The SQL has not been executed against a database. Do not treat the feature as live.
+## Deploy sequence
+1. Create a Supabase project and keep the project reference, database password and API keys private.
+2. Install Supabase CLI on a trusted computer (not inside the public website).
+3. Link the project: `supabase link --project-ref YOUR_PROJECT_REF`.
+4. Apply migrations: `supabase db push`. Review the SQL and test tenant isolation in a staging project first.
+5. Configure server-side secrets from the values listed in `.env.example` using Supabase secrets. Never commit a real .env file.
+6. Deploy the functions:
+   - `supabase functions deploy store-assistant`
+   - `supabase functions deploy create-paddle-checkout`
+   - `supabase functions deploy paddle-webhook`
+   - `supabase functions deploy create-support-ticket`
+7. Configure Paddle sandbox products/prices and webhook destination, then set its API key, six recurring price IDs and notification endpoint secret. The webhook function has JWT verification disabled in `config.toml` because it validates Paddle's HMAC signature itself.
+8. Run sandbox checkout and webhook simulations before changing the provider to production.
+9. Connect a frontend with Supabase Auth and authenticated requests. The current GitHub Pages dashboard still uses localStorage and does not call these functions.
 
-## Database
-Review and apply `supabase/migrations/202611270001_initial_schema.sql` to a fresh Supabase project. It creates store membership, products, inventory movements, customers, orders, order items, subscriptions, audit logs, row-level security policies, and a private product-image bucket.
+## Required secrets
+See `.env.example`. In addition, the scheduled encrypted database backup workflow needs GitHub Actions secrets documented in `docs/ACCOUNT_SUPPORT_BACKUPS.md`.
 
-Before production, add automated tests proving that a user from Store A cannot read or write Store B data. Review all policies and indexes with a database engineer. This migration is a starting point, not a security certification.
+## Functions
+- `store-assistant`: catalog-grounded AI answers. Requires active/trialing subscription and enforces monthly reply allowance using an atomic database RPC.
+- `create-paddle-checkout`: store owner/admin only; refuses plans until `plan_catalog.is_sellable` is explicitly enabled.
+- `paddle-webhook`: verifies Paddle HMAC signature over timestamp + raw request body, deduplicates event IDs, and ignores older subscription events.
+- `create-support-ticket`: authenticated store members can create support tickets and their first message.
 
-## Catalog assistant Edge Function
-Deploy `supabase/functions/store-assistant/index.ts` as a Supabase Edge Function. Configure server-side secrets:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
-- `ALLOWED_ORIGIN` (the exact production app origin)
-
-Never put the service role key or OpenAI key in browser JavaScript or GitHub Pages. Configure a production origin allowlist, rate limiting, usage caps, logging redaction, and abuse monitoring before enabling this endpoint.
-
-## Next engineering work
-- Build frontend authentication and store onboarding against Supabase Auth.
-- Replace localStorage data operations with tenant-scoped database operations.
-- Implement transactional order creation and inventory movements (prefer Postgres RPC/transactions).
-- Add invitations and secure membership management.
-- Add webhook-backed subscriptions and payment state machine.
-- Add Meta WhatsApp OAuth/onboarding, webhook signature verification, templates, opt-in/opt-out and human handoff.
-- Add privacy/data export/deletion workflows and operational monitoring.
+## Important gaps
+- No Supabase project, secrets or Paddle account configuration is connected.
+- No frontend signup/login/password-reset or cloud dashboard is deployed.
+- No support-agent inbox, staff response UI, notifications or published support email exists.
+- No Moroccan Payzone merchant API integration exists. Obtain official merchant documentation and eligibility before coding it.
+- No WhatsApp integration exists.
+- No automatic backup secrets or object-storage bucket have been configured; test restore before production.
+- Security review, automated tests, monitoring, rate limiting and legal review remain mandatory.
