@@ -61,5 +61,5 @@ jobs:
         run: |
           set -euo pipefail
           DATE="$(date -u +%Y/%m/%d)"
-          aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 cp "mavora-db-${{ github.run_id }}.dump.age" "s3://$BACKUP_S3_BUCKET/mavora/$DATE/mavora-db-${{ github.run_id }}.dump.age" --sse AES256
+          aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 cp "mavora-db-${{ github.run_id }}.dump.age" "s3://$BACKUP_S3_BUCKET/mavora/$DATE/mavora-db-${{ github.run_id }}.dump.age"
           aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 cp "mavora-db-${{ github.run_id }}.sha256" "s3://$BACKUP_S3_BUCKET/mavora/$DATE/mavora-db-${{ github.run_id }}.sha256" --sse AES256
