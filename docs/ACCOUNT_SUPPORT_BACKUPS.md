@@ -28,3 +28,13 @@ Supabase Point-in-Time Recovery is an extra paid add-on and can be expensive (pu
 - Do not expose backup files through public GitHub Pages.
 - Do not send service-role keys to the browser.
 - Do not collect real customer personal data until privacy/legal requirements are met.
+
+## Automated encrypted off-site backup workflow
+A GitHub Actions workflow has been added at `.github/workflows/backup-db.yml`. It is disabled until all repository Actions secrets are configured. It runs daily at 02:23 UTC and on manual dispatch:
+- `SUPABASE_DB_URL`: direct Postgres connection string for the production project (not the anon key).
+- `AGE_RECIPIENT`: public age encryption recipient, generated with `age-keygen`; keep the matching private key offline and separate.
+- `BACKUP_S3_ENDPOINT`: S3-compatible object-storage endpoint.
+- `BACKUP_S3_BUCKET`: private bucket name with a 30-day lifecycle policy.
+- `BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY`: least-privilege credentials scoped to that bucket.
+
+The workflow creates a custom-format database dump, encrypts it client-side with age, then uploads the encrypted file and SHA-256 checksum. Do not add the private age key to GitHub or the repository. Perform a restore test before relying on this process. A successful workflow run is not proof that the backup can be restored.
