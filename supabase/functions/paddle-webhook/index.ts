@@ -75,7 +75,7 @@ Deno.serve(async(req)=>{
     await admin.from("billing_events").update({processed_at:new Date().toISOString()}).eq("id",eventRow.id);
     return new Response("ok",{status:200});
   }catch(_){
-    await admin.from("billing_events").update({processing_error:"Subscription update failed"}).eq("id",inserted.id);
+    await admin.from("billing_events").update({processing_error:"Subscription update failed"}).eq("id",eventRow.id);
     return new Response("Event processing failed",{status:500});
   }
 });
