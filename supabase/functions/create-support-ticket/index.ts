@@ -4,8 +4,8 @@ const allowedCategories=["general","billing","technical","data","security","feat
 Deno.serve(async(req)=>{
   const allowedOrigin=Deno.env.get("ALLOWED_ORIGIN")??"";
   const origin=req.headers.get("Origin")??"";
-  if(!allowedOrigin||origin!==allowedOrigin) return new Response("Origin not allowed",{status:403,headers});
   const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Vary":"Origin","Content-Type":"application/json"};
+  if(!allowedOrigin||origin!==allowedOrigin) return new Response("Origin not allowed",{status:403});
   if(req.method==="OPTIONS") return new Response("ok",{headers});
   if(req.method!=="POST") return new Response("Method not allowed",{status:405,headers});
   const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -15,14 +15,14 @@ Deno.serve(async(req)=>{
   let body:any;try{body=await req.json()}catch{return Response.json({error:"Invalid JSON"},{status:400,headers})}
   const storeId=String(body.storeId??""),subject=String(body.subject??"").trim(),message=String(body.message??"").trim(),category=String(body.category??"general");
   if(!/^[0-9a-f-]{36}$/i.test(storeId)||subject.length<4||subject.length>180||message.length<1||message.length>10000||!allowedCategories.includes(category)){
-    return Response.json({error:"Invalid ticket details"},{status:400});
+    return Response.json({error:"Invalid ticket details"},{status:400,headers});
   }
   const userClient=createClient(url,anon,{global:{headers:{Authorization:auth}}});
   const {data:userData,error:userError}=await userClient.auth.getUser();
-  if(userError||!userData.user) return Response.json({error:"Invalid session"},{status:401});
+  if(userError||!userData.user) return Response.json({error:"Invalid session"},{status:401,headers});
   const admin=createClient(url,service,{auth:{persistSession:false}});
   const {data:member,error:memberError}=await admin.from("store_members").select("role").eq("store_id",storeId).eq("user_id",userData.user.id).maybeSingle();
-  if(memberError||!member) return Response.json({error:"Store access denied"},{status:403});
+  if(memberError||!member) return Response.json({error:"Store access denied"},{status:403,headers});
   const {data:ticket,error:ticketError}=await admin.from("support_tickets").insert({
     store_id:storeId,created_by:userData.user.id,subject,category,priority:category==="security"?"high":"normal"
   }).select("id").single();
