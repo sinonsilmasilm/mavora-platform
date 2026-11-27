@@ -15,7 +15,7 @@ The repository contains database migrations and Edge Function scaffolding. Nothi
    - `supabase functions deploy create-support-ticket`
 7. Configure Paddle sandbox products/prices and webhook destination, then set its API key, six recurring price IDs and notification endpoint secret. The webhook function has JWT verification disabled in `config.toml` because it validates Paddle's HMAC signature itself.
 8. Run sandbox checkout and webhook simulations before changing the provider to production.
-9. Connect a frontend with Supabase Auth and authenticated requests. The current GitHub Pages dashboard still uses localStorage and does not call these functions.
+9. The new `cloud.html` / `cloud.js` frontend scaffold contains email signup/login/password reset, store creation, product CRUD, catalog assistant calls, support ticket creation, plan display, checkout invocation and store data export. It remains disabled until `supabase-client-config.js` is filled with the public project URL and anon/publishable key. The older `app.html` dashboard still uses localStorage.
 
 ## Required secrets
 See `.env.example`. In addition, the scheduled encrypted database backup workflow needs GitHub Actions secrets documented in `docs/ACCOUNT_SUPPORT_BACKUPS.md`.
