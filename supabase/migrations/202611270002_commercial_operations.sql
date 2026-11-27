@@ -154,3 +154,8 @@ on conflict(plan_code) do update set
  max_users=excluded.max_users,max_products=excluded.max_products,
  ai_replies_monthly=excluded.ai_replies_monthly,is_public=excluded.is_public,
  is_sellable=false,updated_at=now();
+
+-- Preserve Paddle event ordering and paused state.
+alter table public.subscriptions add column if not exists provider_event_occurred_at timestamptz;
+alter table public.subscriptions drop constraint if exists subscriptions_status_check;
+alter table public.subscriptions add constraint subscriptions_status_check check(status in ('trialing','active','past_due','paused','cancelled','inactive'));
