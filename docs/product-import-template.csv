@@ -1,0 +1,4 @@
+name,sku,barcode,category,description,cost_price,sale_price,currency_code,stock_quantity,low_stock_threshold,image_url
+USB-C Cable 1m,CAB-USBC-1M,,Cables,USB-C charging cable,18,45,MAD,25,5,
+Fast Wall Charger 20W,CHG-20W,,Chargers,20W USB-C wall charger,55,110,MAD,12,3,
+Power Bank 10000mAh,PB-10K,,Power Banks,110,200,MAD,8,2,
