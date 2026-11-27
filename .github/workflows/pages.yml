@@ -30,7 +30,7 @@ jobs:
       - name: Prepare public site files
         run: |
           mkdir -p dist
-          cp index.html app.html styles.css app.js manifest.webmanifest sw.js privacy.html terms.html help.html dist/
+          cp index.html app.html cloud.html styles.css app.js cloud.js supabase-client-config.js manifest.webmanifest sw.js privacy.html terms.html help.html dist/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
