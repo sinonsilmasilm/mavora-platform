@@ -1,0 +1,13 @@
+project_id = "mavora-platform"
+
+[functions.store-assistant]
+verify_jwt = true
+
+[functions.create-paddle-checkout]
+verify_jwt = true
+
+[functions.create-support-ticket]
+verify_jwt = true
+
+[functions.paddle-webhook]
+verify_jwt = false
