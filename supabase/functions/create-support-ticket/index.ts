@@ -32,7 +32,7 @@ Deno.serve(async(req)=>{
   });
   if(messageError){
     await admin.from("support_tickets").delete().eq("id",ticket.id);
-    return Response.json({error:"Could not save ticket message"},{status:500});
+    return Response.json({error:"Could not save ticket message"},{status:500,headers});
   }
   return Response.json({ticketId:ticket.id,status:"open"},{status:201,headers});
 });
