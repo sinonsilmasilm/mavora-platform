@@ -1,12 +1,20 @@
 {
   "name": "MAVORA Smart Commerce",
   "short_name": "MAVORA",
-  "start_url": "./",
+  "start_url": "./cloud.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fc",
   "theme_color": "#0b1630",
   "lang": "ar",
   "dir": "rtl",
-  "description": "نموذج أولي محلي لإدارة المنتجات والمخزون والطلبات"
+  "description": "إدارة المتجر السحابية من الهاتف والكمبيوتر",
+  "icons": [
+    {
+      "src": "./mavora-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }
