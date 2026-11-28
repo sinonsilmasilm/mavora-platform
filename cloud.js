@@ -2,6 +2,7 @@
 const $=id=>document.getElementById(id),cfgUrl=window.MAVORA_SUPABASE_URL||'',cfgKey=window.MAVORA_SUPABASE_ANON_KEY||'';
 if(!window.supabase||!cfgUrl||!cfgKey){$('configNotice').textContent='الربط السحابي غير مفعّل بعد. يلزم إنشاء مشروع Supabase، تنفيذ ملفات migrations، ثم وضع Project URL وanon/publishable key في supabase-client-config.js. لا تضع service_role أو مفاتيح AI أو Paddle هنا.';$('authPanel').querySelectorAll('button').forEach(b=>b.disabled=true);return}
 const client=window.supabase.createClient(cfgUrl,cfgKey);
+$('configNotice').textContent='إعدادات الاتصال السحابي محمّلة. سجّل الدخول لإنشاء مساحة متجرك ومزامنة بياناته.';$('configNotice').classList.add('hidden');
 let currentUser=null,stores=[],activeStore=null;
 const say=(id,msg,kind='')=>{$(id).textContent=msg;$(id).className='status '+kind};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
