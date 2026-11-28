@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY OPENAI_API_KEY OPENAI_MODEL; do
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY; do
             if [[ -z "${!name}" ]]; then echo "Missing required GitHub Actions secret: $name"; exit 1; fi
           done
           if [[ "$SUPABASE_URL" != https://*.supabase.co ]]; then
@@ -70,8 +70,8 @@ jobs:
             printf 'SUPABASE_ANON_KEY=%s\n' "$SUPABASE_ANON_KEY"
             printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
             printf 'ALLOWED_ORIGIN=%s\n' "$ALLOWED_ORIGIN"
-            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"
-            printf 'OPENAI_MODEL=%s\n' "$OPENAI_MODEL"
+            if [[ -n "$OPENAI_API_KEY" ]]; then printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"; fi
+            if [[ -n "$OPENAI_MODEL" ]]; then printf 'OPENAI_MODEL=%s\n' "$OPENAI_MODEL"; fi
             printf 'PADDLE_ENVIRONMENT=%s\n' "$PADDLE_ENVIRONMENT"
             if [[ -n "$PADDLE_API_KEY" ]]; then printf 'PADDLE_API_KEY=%s\n' "$PADDLE_API_KEY"; fi
             if [[ -n "$PADDLE_WEBHOOK_SECRET" ]]; then printf 'PADDLE_WEBHOOK_SECRET=%s\n' "$PADDLE_WEBHOOK_SECRET"; fi
