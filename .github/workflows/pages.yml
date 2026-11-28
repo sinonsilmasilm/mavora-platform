@@ -35,8 +35,8 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           if [[ -n "$SUPABASE_URL" && -n "$SUPABASE_ANON_KEY" ]]; then
-            printf 'window.MAVORA_SUPABASE_URL = %s;\\nwindow.MAVORA_SUPABASE_ANON_KEY = %s;\\n' \\
-              "$(jq -Rn --arg value "$SUPABASE_URL" '$value')" \\
+            printf 'window.MAVORA_SUPABASE_URL = %s;\nwindow.MAVORA_SUPABASE_ANON_KEY = %s;\n' \
+              "$(jq -Rn --arg value "$SUPABASE_URL" '$value')" \
               "$(jq -Rn --arg value "$SUPABASE_ANON_KEY" '$value')" > supabase-client-config.js
           else
             echo "Supabase public client settings are not configured; cloud sign-in remains disabled."
