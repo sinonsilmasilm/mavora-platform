@@ -8,14 +8,17 @@ function constantTimeEqual(a: string,b: string): boolean {
 function hex(bytes: Uint8Array): string { return [...bytes].map(x=>x.toString(16).padStart(2,"0")).join(""); }
 
 async function verifySignature(raw: string, header: string, secret: string): Promise<boolean> {
-  const parts = Object.fromEntries(header.split(";").map(p=>p.split("=",2) as [string,string]));
-  const ts=parts.ts, signature=parts.h1;
-  if(!ts || !signature || !/^\d+$/.test(ts)) return false;
+  const fields = header.split(";").map(part=>part.trim().split("=",2) as [string,string]);
+  const ts = fields.find(([key])=>key==="ts")?.[1];
+  const signatures = fields.filter(([key])=>key==="h1").map(([,value])=>value).filter(Boolean);
+  if(!ts || signatures.length===0 || !/^\\d+$/.test(ts)) return false;
   const seconds=Number(ts);
-  if(!Number.isFinite(seconds) || Math.abs(Date.now()/1000-seconds)>300) return false;
+  // Match Paddle's recommended five-second replay window.
+  if(!Number.isFinite(seconds) || Math.abs(Date.now()/1000-seconds)>5) return false;
   const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   const digest=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(ts + ":" + raw));
-  return constantTimeEqual(hex(new Uint8Array(digest)),signature);
+  const expected=hex(new Uint8Array(digest));
+  return signatures.some(signature=>constantTimeEqual(expected,signature));
 }
 
 Deno.serve(async(req)=>{
