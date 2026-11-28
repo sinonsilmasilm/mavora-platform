@@ -12,10 +12,28 @@ async function refreshStores(){
  $('storeSelect').innerHTML=stores.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join('');
  if(stores.length){$('storeSelect').value=stores[0].id;await selectStore(stores[0].id)}else{$('storeContent').classList.add('hidden');activeStore=null}
 }
-async function selectStore(id){activeStore=stores.find(s=>s.id===id);if(!activeStore)return;$('storeContent').classList.remove('hidden');await Promise.all([loadProducts(),loadSubscription()])}
+async function selectStore(id){activeStore=stores.find(s=>s.id===id);if(!activeStore)return;$('storeContent').classList.remove('hidden');await Promise.all([loadProducts(),loadSubscription(),loadStoreData()])}
 async function loadProducts(){
  const {data,error}=await client.from('products').select('id,name,sale_price,stock_quantity,description').eq('store_id',activeStore.id).order('created_at',{ascending:false}).limit(500);
  if(error)throw error;$('productRows').innerHTML=(data||[]).map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+money(p.sale_price)+'</td><td>'+p.stock_quantity+'</td><td><button class="secondary" data-delete="'+esc(p.id)+'" type="button">حذف</button></td></tr>').join('');
+}
+async function loadStoreData(){
+ const [customers,orders,movements,products]=await Promise.all([
+  client.from('customers').select('id,full_name,phone,email,created_at').eq('store_id',activeStore.id).order('created_at',{ascending:false}).limit(500),
+  client.from('orders').select('id,order_number,status,total,currency_code,created_at').eq('store_id',activeStore.id).order('created_at',{ascending:false}).limit(500),
+  client.from('inventory_movements').select('id,product_id,movement_type,quantity_delta,note,created_at').eq('store_id',activeStore.id).order('created_at',{ascending:false}).limit(100),
+  client.from('products').select('id,name,stock_quantity,low_stock_threshold').eq('store_id',activeStore.id).order('name').limit(500)
+ ]);
+ for(const r of [customers,orders,movements,products])if(r.error)throw r.error;
+ const cs=customers.data||[],os=orders.data||[],ms=movements.data||[],ps=products.data||[];
+ $('customerRows').innerHTML=cs.map(c=>'<tr><td>'+esc(c.full_name)+'</td><td>'+esc(c.phone||'—')+'</td><td>'+esc(c.email||'—')+'</td><td>'+new Date(c.created_at).toLocaleDateString('ar-MA')+'</td></tr>').join('');
+ $('orderRowsCloud').innerHTML=os.map(o=>'<tr><td>'+esc(o.order_number)+'</td><td>'+esc(o.status)+'</td><td>'+money(o.total)+' '+esc(o.currency_code)+'</td><td>'+new Date(o.created_at).toLocaleDateString('ar-MA')+'</td></tr>').join('');
+ const pmap=new Map(ps.map(p=>[p.id,p.name]));
+ $('stockRowsCloud').innerHTML=ps.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+Number(p.stock_quantity)+'</td><td>'+Number(p.low_stock_threshold)+'</td><td>'+(Number(p.stock_quantity)<=Number(p.low_stock_threshold)?'<span class="bad">منخفض</span>':'<span class="good">متوفر</span>')+'</td></tr>').join('');
+ $('movementRowsCloud').innerHTML=ms.map(m=>'<tr><td>'+esc(m.movement_type)+'</td><td>'+Number(m.quantity_delta)+'</td><td>'+esc(m.note||'—')+'</td><td>'+new Date(m.created_at).toLocaleDateString('ar-MA')+'</td></tr>').join('');
+ $('reportProducts').textContent=String(ps.length);$('reportCustomers').textContent=String(cs.length);$('reportOrders').textContent=String(os.length);
+ $('reportRevenue').textContent=money(os.reduce((sum,o)=>sum+Number(o.total||0),0));
+ $('reportLowStock').textContent=String(ps.filter(p=>Number(p.stock_quantity)<=Number(p.low_stock_threshold)).length);
 }
 async function loadSubscription(){
  const {data}=await client.from('subscriptions').select('plan_code,status,current_period_end').eq('store_id',activeStore.id).maybeSingle();
@@ -31,6 +49,7 @@ client.auth.onAuthStateChange(async(event,session)=>{if(event==='PASSWORD_RECOVE
 $('logoutBtn').addEventListener('click',async()=>{await client.auth.signOut();location.reload()});
 $('storeSelect').addEventListener('change',async e=>{try{await selectStore(e.target.value)}catch(err){say('storeStatus',err.message,'bad')}});
 $('createStoreForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('storeName').value.trim(),slug=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)+'-'+Math.random().toString(36).slice(2,6);const {error}=await client.from('stores').insert({owner_user_id:currentUser.id,name,slug,country_code:'MA',currency_code:'MAD'});if(error)return say('storeStatus',error.message,'bad');$('storeName').value='';await refreshStores();say('storeStatus','تم إنشاء مساحة المتجر.','good')});
+$('customerForm').addEventListener('submit',async e=>{e.preventDefault();const payload={store_id:activeStore.id,full_name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,email:$('customerEmail').value.trim()||null,address:$('customerAddress').value.trim()||null};const {error}=await client.from('customers').insert(payload);if(error)return say('customerStatus',error.message,'bad');$('customerForm').reset();await loadStoreData();say('customerStatus','تمت إضافة العميل.','good')});
 $('productForm').addEventListener('submit',async e=>{e.preventDefault();const payload={store_id:activeStore.id,name:$('productName').value.trim(),sale_price:Number($('productPrice').value),stock_quantity:Number($('productQty').value),description:$('productDesc').value.trim(),currency_code:'MAD',created_by:currentUser.id};const {error}=await client.from('products').insert(payload);if(error)return say('productStatus',error.message,'bad');$('productForm').reset();await loadProducts();say('productStatus','تمت إضافة المنتج.','good')});
 $('productRows').addEventListener('click',async e=>{const id=e.target.dataset.delete;if(!id)return;if(!confirm('حذف هذا المنتج؟'))return;const {error}=await client.from('products').delete().eq('id',id).eq('store_id',activeStore.id);if(error)return say('productStatus',error.message,'bad');await loadProducts()});
 $('aiForm').addEventListener('submit',async e=>{e.preventDefault();say('aiAnswer','جارٍ سؤال المساعد…');const {data,error}=await client.functions.invoke('store-assistant',{body:{storeId:activeStore.id,question:$('aiQuestion').value.trim()}});say('aiAnswer',error?(error.message||'تعذر الاتصال بالمساعد'):(data?.answer||data?.error||'لم يصل رد.'),error?'bad':'good')});
