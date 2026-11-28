@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const openAiKey = Deno.env.get("OPENAI_API_KEY");
-  const model = Deno.env.get("OPENAI_MODEL");
-  if (!supabaseUrl || !anonKey || !serviceKey || !openAiKey || !model) {
+  const model = Deno.env.get("OPENAI_MODEL") ?? "gpt-4o-mini";
+  if (!supabaseUrl || !anonKey || !serviceKey || !openAiKey) {
     return new Response(JSON.stringify({ error: "Server configuration incomplete" }), { status: 503, headers });
   }
 
