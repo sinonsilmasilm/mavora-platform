@@ -27,4 +27,4 @@
 <section class="card"><h2>الاشتراك والدفع</h2><p id="subscriptionStatus" class="muted">جارٍ قراءة حالة الاشتراك…</p><label>دورية الدفع<select id="billingInterval"><option value="monthly">شهري</option><option value="annual">سنوي (شهران مجاناً)</option></select></label><div class="grid" id="plans"></div><p class="muted">لن يعمل الدفع حتى يتم اعتماد حساب البائع وإضافة معرفات الأسعار ومفاتيح الخادم.</p></section>
 </div></section>
 </main><footer class="footer">MAVORA — إصدار الربط السحابي قيد الإعداد. <a href="./help.html">مركز المساعدة</a></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-client-config.js"></script><script src="./cloud.js" defer></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-client-config.js"></script><script src="./cloud.js" defer></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script></body></html>
