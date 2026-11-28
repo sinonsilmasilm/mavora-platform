@@ -12,5 +12,5 @@ self.addEventListener('fetch',event=>{
  event.respondWith(fetch(request).then(response=>{
   if(response&&response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(request,copy))}
   return response;
- }).catch(()=>caches.match(request).then(cached=>cached||caches.match('./cloud.html'))));
+ }).catch(()=>caches.match(request).then(cached=>cached||new Response('Offline',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}}))));
 });
