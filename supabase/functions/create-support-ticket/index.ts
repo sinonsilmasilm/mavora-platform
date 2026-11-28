@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const allowedCategories=["general","billing","technical","data","security","feature"];
 Deno.serve(async(req)=>{
-  const allowedOrigin=Deno.env.get("ALLOWED_ORIGIN")??"";
+  const allowedOrigin=Deno.env.get("ALLOWED_ORIGIN")??"https://sinonsilmasilm.github.io";
   const origin=req.headers.get("Origin")??"";
   const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Vary":"Origin","Content-Type":"application/json"};
   if(!allowedOrigin||origin!==allowedOrigin) return new Response("Origin not allowed",{status:403});
