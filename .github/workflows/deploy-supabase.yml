@@ -1,0 +1,92 @@
+name: Deploy MAVORA Supabase backend
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mavora-supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ALLOWED_ORIGIN: https://sinonsilmasilm.github.io
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      PADDLE_ENVIRONMENT: sandbox
+      PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+      PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+      PADDLE_PRICE_STARTER_MONTHLY: ${{ secrets.PADDLE_PRICE_STARTER_MONTHLY }}
+      PADDLE_PRICE_STARTER_ANNUAL: ${{ secrets.PADDLE_PRICE_STARTER_ANNUAL }}
+      PADDLE_PRICE_PRO_MONTHLY: ${{ secrets.PADDLE_PRICE_PRO_MONTHLY }}
+      PADDLE_PRICE_PRO_ANNUAL: ${{ secrets.PADDLE_PRICE_PRO_ANNUAL }}
+      PADDLE_PRICE_BUSINESS_MONTHLY: ${{ secrets.PADDLE_PRICE_BUSINESS_MONTHLY }}
+      PADDLE_PRICE_BUSINESS_ANNUAL: ${{ secrets.PADDLE_PRICE_BUSINESS_ANNUAL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deployment credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY OPENAI_API_KEY OPENAI_MODEL; do
+            if [[ -z "${!name}" ]]; then echo "Missing required GitHub Actions secret: $name"; exit 1; fi
+          done
+          if [[ "$SUPABASE_URL" != https://*.supabase.co ]]; then
+            echo "SUPABASE_URL must be the HTTPS URL of the target Supabase project"; exit 1
+          fi
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project and apply database migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Configure server-side function secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_ANON_KEY=%s\n' "$SUPABASE_ANON_KEY"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
+            printf 'ALLOWED_ORIGIN=%s\n' "$ALLOWED_ORIGIN"
+            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"
+            printf 'OPENAI_MODEL=%s\n' "$OPENAI_MODEL"
+            printf 'PADDLE_ENVIRONMENT=%s\n' "$PADDLE_ENVIRONMENT"
+            if [[ -n "$PADDLE_API_KEY" ]]; then printf 'PADDLE_API_KEY=%s\n' "$PADDLE_API_KEY"; fi
+            if [[ -n "$PADDLE_WEBHOOK_SECRET" ]]; then printf 'PADDLE_WEBHOOK_SECRET=%s\n' "$PADDLE_WEBHOOK_SECRET"; fi
+            for name in PADDLE_PRICE_STARTER_MONTHLY PADDLE_PRICE_STARTER_ANNUAL PADDLE_PRICE_PRO_MONTHLY PADDLE_PRICE_PRO_ANNUAL PADDLE_PRICE_BUSINESS_MONTHLY PADDLE_PRICE_BUSINESS_ANNUAL; do
+              if [[ -n "${!name}" ]]; then printf '%s=%s\n' "$name" "${!name}"; fi
+            done
+          } > "$RUNNER_TEMP/mavora-functions.env"
+          supabase secrets set --env-file "$RUNNER_TEMP/mavora-functions.env"
+          rm -f "$RUNNER_TEMP/mavora-functions.env"
+
+      - name: Deploy Edge Functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy store-assistant
+          supabase functions deploy create-paddle-checkout
+          supabase functions deploy paddle-webhook
+          supabase functions deploy create-support-ticket
