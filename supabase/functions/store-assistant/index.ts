@@ -8,7 +8,7 @@ const corsHeaders = (origin: string) => ({
 });
 
 Deno.serve(async (req) => {
-  const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN");
+  const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") ?? "https://sinonsilmasilm.github.io";
   const origin = req.headers.get("Origin") ?? "";
   if (!allowedOrigin || origin !== allowedOrigin) {
     return new Response("Origin not allowed", { status: 403 });
