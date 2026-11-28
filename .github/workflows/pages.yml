@@ -28,8 +28,19 @@ jobs:
         with:
           enablement: true
       - name: Prepare public site files
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p dist
+          if [[ -n "$SUPABASE_URL" && -n "$SUPABASE_ANON_KEY" ]]; then
+            printf 'window.MAVORA_SUPABASE_URL = %s;\\nwindow.MAVORA_SUPABASE_ANON_KEY = %s;\\n' \\
+              "$(jq -Rn --arg value "$SUPABASE_URL" '$value')" \\
+              "$(jq -Rn --arg value "$SUPABASE_ANON_KEY" '$value')" > supabase-client-config.js
+          else
+            echo "Supabase public client settings are not configured; cloud sign-in remains disabled."
+          fi
           cp index.html app.html cloud.html styles.css app.js cloud.js supabase-client-config.js manifest.webmanifest sw.js privacy.html terms.html help.html dist/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
