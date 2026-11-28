@@ -16,8 +16,10 @@ Required to deploy the backend:
 - `SUPABASE_URL`: project URL, for example `https://PROJECT_REF.supabase.co`.
 - `SUPABASE_ANON_KEY`: anon / publishable browser key.
 - `SUPABASE_SERVICE_ROLE_KEY`: server-only service role key.
-- `OPENAI_API_KEY`: server-side API key for the AI assistant.
-- `OPENAI_MODEL`: a model enabled for the API account, e.g. `gpt-4o-mini`.
+
+Optional AI secret (the AI assistant remains unavailable until configured):
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (e.g. `gpt-4o-mini`)
 
 Optional billing secrets (keep Paddle in sandbox until tested and approved):
 - `PADDLE_API_KEY`
